@@ -1,5 +1,5 @@
 #include <cstdint>
-
+#include <assert.h>
 
 template<typename T>
 class MemPool
@@ -35,6 +35,7 @@ MemPool<T>::MemPool()
     , next_( nullptr )
 {
     static_assert( sizeof( uint32_t ) <= sizeof( T ), "sizeof( T ) must be equal or greater than sizeof( uint32_t )" );
+    static_assert(std::is_trivial<T>::value, "MemPool can only handle trivial types");
 }
 
 
@@ -95,9 +96,13 @@ T* MemPool<T>::Allocate()
 template<typename T>
 void MemPool<T>::Deallocate( void* p )
 {
+    assert( static_cast<uint8_t*>(p) >= mem_beg_ );
+
     *static_cast<uint32_t*>( p ) = next_ == nullptr ? num_cells_ : IndexFromAddr( next_ );
     next_ = static_cast<uint8_t*>( p );
     ++num_free_cells_;
+
+    assert(num_free_cells_ <= num_cells_);
 }
 
 
