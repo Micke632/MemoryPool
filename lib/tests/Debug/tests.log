@@ -1,0 +1,6 @@
+﻿  test.cpp
+c:\code\memorypool\lib\mempool.hpp(105): warning C4018: '<=': signed/unsigned mismatch
+  c:\code\memorypool\lib\mempool.hpp(97): note: while compiling class template member function 'void MemPool<int>::Deallocate(void *)'
+  c:\code\memorypool\lib\test\test.cpp(42): note: see reference to function template instantiation 'void MemPool<int>::Deallocate(void *)' being compiled
+  c:\code\memorypool\lib\test\test.cpp(11): note: see reference to class template instantiation 'MemPool<int>' being compiled
+  tests.vcxproj -> C:\Code\imgui-master\examples\Debug\tests.exe

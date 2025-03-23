@@ -67,6 +67,8 @@ void MemPool<T>::DestroyPool()
 template<typename T>
 T* MemPool<T>::Allocate()
 {
+   assert(mem_beg_);
+
    if (num_init_ < num_cells_)
    {
       uint32_t* p = reinterpret_cast<uint32_t*>(AddrFromIndex(num_init_));
