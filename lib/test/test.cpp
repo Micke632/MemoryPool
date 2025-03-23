@@ -1,7 +1,4 @@
-// test.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 
-#include <iostream>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
 #include "../MemPool.hpp"
@@ -11,7 +8,7 @@ TEST_CASE("MemPool integrity") {
 
    MemPool<int> pool;
    pool.CreatePool(10);
-      
+
    int *t1 = pool.Allocate();
    *t1 = 1;
    int *t2 = pool.Allocate();
@@ -37,9 +34,9 @@ TEST_CASE("MemPool integrity") {
          CHECK(*i.first == i.second);
       }
    };
-   
+
    check(vec);
-      
+
    pool.Deallocate(t3);
    vec.erase(vec.begin() + 2);
    check(vec);
@@ -50,7 +47,7 @@ TEST_CASE("MemPool integrity") {
    pool.Deallocate(t1);
    vec.erase(vec.begin());
    check(vec);
-      
+
    int *t = pool.Allocate();
    t = pool.Allocate();
    t = pool.Allocate();
@@ -73,9 +70,9 @@ TEST_CASE("MemPool bookkeeping") {
 
    MemPool<int> pool;
    pool.CreatePool(5);
-   
+
    //test internal bookkeeping
-   int *t1  = pool.Allocate();
+   int *t1 = pool.Allocate();
    CHECK(t1 != nullptr);
    uint32_t* p = reinterpret_cast<uint32_t*>(t1);
    //next available block at pos 1
@@ -92,11 +89,11 @@ TEST_CASE("MemPool bookkeeping") {
    int *t5 = pool.Allocate();
    p = reinterpret_cast<uint32_t*>(t5);
    CHECK(*p == 5);
-   
+
    //pool full
    int *t6 = pool.Allocate();
    CHECK(t6 == nullptr);
-      
+
    pool.Deallocate(t5);
 
    p = reinterpret_cast<uint32_t*>(t5);
@@ -109,7 +106,7 @@ TEST_CASE("MemPool bookkeeping") {
    pool.Deallocate(t2);
    pool.Deallocate(t1);
    p = reinterpret_cast<uint32_t*>(t1);
-   CHECK(*p == 1);      
+   CHECK(*p == 1);
 
 }
 
