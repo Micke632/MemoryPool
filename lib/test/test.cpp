@@ -67,6 +67,21 @@ TEST_CASE("MemPool integrity")
    check(vec);
 }
 
+TEST_CASE("MemPool many")
+{
+   MemPool<int> pool;
+   pool.CreatePool(10000);
+   int *l = nullptr;
+   for (int i = 0; i < 10000; i++)
+   {
+      auto *p = pool.Allocate();
+      l = p;
+   }
+   pool.Deallocate(l);
+   auto *pp = pool.Allocate();
+   CHECK(pp != nullptr);
+}
+
 
 TEST_CASE("MemPool bookkeeping")
 {
@@ -124,7 +139,7 @@ TEST_CASE("MemPool struct test")
 
    struct Node
    {
-      char one;
+      char one[3];
       short t;
       int y;
       char buff[6];
