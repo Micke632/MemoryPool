@@ -8,8 +8,8 @@
 TEST_CASE("MemPool integrity")
 {
 
-   MemPool<int> pool;
-   pool.CreatePool(10);
+   MemPool<int> pool(10);
+   pool.CreatePool();
 
    int *t1 = pool.Allocate();
    *t1 = 1;
@@ -69,15 +69,19 @@ TEST_CASE("MemPool integrity")
 
 TEST_CASE("MemPool many")
 {
-   MemPool<int> pool;
-   pool.CreatePool(10000);
-   int *l = nullptr;
+   MemPool<int> pool(10000);
+   pool.CreatePool();
+
+   int *total[10000];
    for (int i = 0; i < 10000; i++)
    {
-      auto *p = pool.Allocate();
-      l = p;
+      total[i] = pool.Allocate();
    }
-   pool.Deallocate(l);
+   for (int i = 0; i < 5000; i++)
+   {
+      pool.Deallocate(total[i]);
+   }
+
    auto *pp = pool.Allocate();
    CHECK(pp != nullptr);
 }
@@ -86,8 +90,8 @@ TEST_CASE("MemPool many")
 TEST_CASE("MemPool bookkeeping")
 {
 
-   MemPool<int> pool;
-   pool.CreatePool(5);
+   MemPool<int> pool(5);
+   pool.CreatePool();
 
    //test internal bookkeeping
    int *t1 = pool.Allocate();
@@ -144,8 +148,8 @@ TEST_CASE("MemPool struct test")
       int y;
       char buff[6];
    };
-   MemPool<Node> pool;
-   pool.CreatePool(3);
+   MemPool<Node> pool(3);
+   pool.CreatePool();
 
    auto *t1 = pool.Allocate();
    memset(t1, 0, sizeof(*t1)); 

@@ -2,77 +2,82 @@
 #include <assert.h>
 #include <type_traits>
 
-static inline constexpr int getShifts(uint32_t size)
+namespace details
 {
-   switch (size)
-   {
-   case 4:return 2;
-   case 8:return 3;
-   case 16:return 4;
-   case 32:return 5;
-   case 64:return 6;
-   case 128:return 7;
-   case 256:return 8;
-   case 512:return 9;
-   }
 
-   //todo
-   return 0;
+    static inline constexpr int getShifts(uint32_t size)
+    {
+        switch (size)
+        {
+        case 4:return 2;
+        case 8:return 3;
+        case 16:return 4;
+        case 32:return 5;
+        case 64:return 6;
+        case 128:return 7;
+        case 256:return 8;
+        case 512:return 9;
+        case 1024:return 10;
+        case 2048:return 11;
+        case 4096:return 12;
+        }
+        assert(false);
+        return 0;
+    }
+
+    template <uint32_t N>
+    struct power_of_two
+    {
+        //probably pointless optimization :). but wanted to practice templates
+        inline constexpr uint32_t IndexFromAddr(const uint8_t* p, const uint8_t* mem_beg_) const
+        {
+            constexpr int shift = getShifts(N);
+            return static_cast<uint32_t>(p - mem_beg_) >> shift;
+        }
+
+        inline constexpr  uint8_t* AddrFromIndex(uint8_t* mem_beg_, uint32_t i) const
+        {
+            constexpr int shift = getShifts(N);
+            return mem_beg_ + (i << shift);
+        }
+
+    };
+
+    template <uint32_t N>
+    struct standard
+    {
+        inline constexpr uint32_t IndexFromAddr(const uint8_t* p, const uint8_t* mem_beg_) const
+        {
+            return static_cast<uint32_t>(p - mem_beg_) / N;
+        }
+        inline constexpr  uint8_t* AddrFromIndex(uint8_t* mem_beg_, uint32_t i) const
+        {
+            return mem_beg_ + (i * N);
+        }
+    };
+
+    template<bool, uint32_t N>
+    struct selector;
+
+    template<uint32_t N>
+    struct selector<false, N>
+    {
+        using type = standard<N>;
+    };
+    template<uint32_t N>
+    struct selector<true, N>
+    {
+        using type = power_of_two<N>;
+    };
 }
 
-template <uint32_t U>
-struct power_of_two
-{
-   //probably pointless optimization :). but wanted to practice templates
-   inline constexpr uint32_t IndexFromAddr(const uint8_t* p, const uint8_t* mem_beg_) const
-   {
-      constexpr int shift = getShifts(U);
-      return static_cast<uint32_t>(p - mem_beg_) >> shift;
-   }
-
-   inline constexpr  uint8_t* AddrFromIndex(uint8_t* mem_beg_, uint32_t i) const
-   {
-      constexpr int shift = getShifts(U);
-      return mem_beg_ + (i << shift);
-   }
-
-};
-
-template <uint32_t U>
-struct standard
-{
-   inline constexpr uint32_t IndexFromAddr(const uint8_t* p, const uint8_t* mem_beg_) const
-   {
-      return static_cast<uint32_t>(p - mem_beg_) / U;
-   }
-   inline constexpr  uint8_t* AddrFromIndex(uint8_t* mem_beg_, uint32_t i) const
-   {
-      return mem_beg_ + (i * U);
-   }
-};
-
-template<bool, uint32_t U>
-struct selector;
-
-template<uint32_t U>
-struct selector<false, U>
-{
-   using type = standard<U>;
-};
-template<uint32_t U>
-struct selector<true, U>
-{
-   using type = power_of_two<U>;
-};
-
-
-template<typename T, uint32_t U = sizeof(T)>
+template<typename T, uint32_t N = sizeof(T)>
 class MemPool
 {
 public:
-   MemPool();
+   MemPool(uint32_t num_cells);
    ~MemPool();
-   void CreatePool(uint32_t num_cells);
+   void CreatePool();
    void DestroyPool();
    T* Allocate();
    void Deallocate(void * p);
@@ -80,25 +85,25 @@ public:
 private:
 
    const uint32_t cell_size_;
-   uint32_t num_cells_;
+   const uint32_t num_cells_;
    int32_t num_free_cells_;
    uint32_t num_init_;
    uint8_t* mem_beg_;
    uint8_t* next_;
 
-   static constexpr bool IsPowerOfTwo = !(U == 0) && !(U & (U - 1));
+   //static constexpr bool IsPowerOfTwo = !(N == 0) && !(N & (N - 1));
 
-   using policy_type = typename selector<IsPowerOfTwo, U>::type;
+   using policy_type = typename details::selector<false, N>::type;
 
    policy_type policy;
 
 };
 
-template<typename T, uint32_t U>
-MemPool<T,U>::MemPool()
-   : cell_size_(U)
-   , num_cells_(0)
-   , num_free_cells_(0)
+template<typename T, uint32_t N>
+MemPool<T,N>::MemPool(uint32_t num_cells)
+   : cell_size_(N)
+   , num_cells_(num_cells)
+   , num_free_cells_(num_cells)
    , num_init_(0)
    , mem_beg_(nullptr)
    , next_(nullptr)
@@ -108,33 +113,31 @@ MemPool<T,U>::MemPool()
 }
 
 
-template<typename T, uint32_t U>
-MemPool<T,U>::~MemPool()
+template<typename T, uint32_t N>
+MemPool<T,N>::~MemPool()
 {
    DestroyPool();
 }
 
 
-template<typename T, uint32_t U>
-void MemPool<T,U>::CreatePool(uint32_t num_cells)
+template<typename T, uint32_t N>
+void MemPool<T,N>::CreatePool()
 {
-   num_cells_ = num_cells;
-   num_free_cells_ = num_cells_;
    mem_beg_ = new uint8_t[num_cells_ * cell_size_];
    next_ = mem_beg_;
 }
 
 
-template<typename T, uint32_t U>
-void MemPool<T,U>::DestroyPool()
+template<typename T, uint32_t N>
+void MemPool<T,N>::DestroyPool()
 {
    delete[] mem_beg_;
    mem_beg_ = nullptr;
 }
 
 
-template<typename T, uint32_t U>
-T* MemPool<T,U>::Allocate()
+template<typename T, uint32_t N>
+T* MemPool<T,N>::Allocate()
 {
    assert(mem_beg_);
 
@@ -161,8 +164,8 @@ T* MemPool<T,U>::Allocate()
 }
 
 
-template<typename T, uint32_t U>
-void MemPool<T,U>::Deallocate(void * p)
+template<typename T, uint32_t N>
+void MemPool<T,N>::Deallocate(void * p)
 {
    assert(static_cast<uint8_t*>(p) >= mem_beg_);
    assert(static_cast<uint8_t*>(p) <= policy.AddrFromIndex(mem_beg_, num_cells_));
